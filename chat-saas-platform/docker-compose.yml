@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: chat_saas_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: chat_saas
+      MYSQL_USER: chat_user
+      MYSQL_PASSWORD: chat_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    networks:
+      - chat_network
+
+  backend:
+    build: ./backend
+    container_name: chat_saas_backend
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=chat_saas
+      - DB_USER=chat_user
+      - DB_PASSWORD=chat_password
+      - JWT_SECRET=your-super-secret-key-change-this
+    depends_on:
+      - mysql
+    networks:
+      - chat_network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  frontend:
+    build: ./frontend
+    container_name: chat_saas_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - chat_network
+
+volumes:
+  mysql_data:
+
+networks:
+  chat_network:
+    driver: bridge
